@@ -1,0 +1,12 @@
+{
+  "name": "troopjs-opt",
+  "version": "1.0.0",
+  "ignore": [
+    "**/.*",
+    "node_modules"
+  ],
+  "dependencies": {
+    "poly": "~0",
+    "when": "~3"
+  }
+}
