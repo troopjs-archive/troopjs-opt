@@ -7,7 +7,7 @@ define([ "poly/array" ], function SequenceModule() {
 	/**
 	 * @class opt.route.runner.sequence
 	 * @implement core.event.emitter.runner
-	 * @protected
+	 * @private
 	 * @static
 	 * @alias feature.runner
 	 */

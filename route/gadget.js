@@ -97,12 +97,11 @@ define([
 		 */
 		"hub:memory/hash/change": function onHashChange(hash) {
 			var me = this;
+			var args = [ "change" ];
+
+			ARRAY_PUSH.apply(args, arguments);
 
 			return me.task(function (resolve) {
-				var args = [ "change" ];
-
-				ARRAY_PUSH.apply(args, arguments);
-
 				resolve(runRoute.apply(me, args));
 			}, ROUTE + "/change");
 		},
@@ -126,12 +125,11 @@ define([
 		 */
 		"route": function route(route, data) {
 			var me = this;
+			var args = [ "set" ];
+
+			ARRAY_PUSH.apply(args, arguments);
 
 			return me.task(function (resolve) {
-				var args = [ "set" ];
-
-				ARRAY_PUSH.apply(args, arguments);
-
 				resolve(runRoute.apply(me, args));
 			}, ROUTE + "/set");
 		}
