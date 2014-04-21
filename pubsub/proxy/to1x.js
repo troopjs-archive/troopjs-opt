@@ -4,10 +4,9 @@
 define([
 	"troopjs-core/component/service",
 	"when",
-	"when/apply",
 	"poly/array",
 	"poly/object"
-], function To1xModule(Service, when, apply) {
+], function To1xModule(Service, when) {
 	"use strict";
 
 	/**
@@ -178,7 +177,7 @@ define([
 
 						// If we have a deferred we should chain it to result
 						if (deferred) {
-							when(result, apply(deferred.resolve), deferred.reject, deferred.progress);
+							when(result, when.apply(deferred.resolve), deferred.reject, deferred.progress);
 						}
 
 						// Return result

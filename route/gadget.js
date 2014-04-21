@@ -91,8 +91,8 @@ define([
 
 		/**
 		 * @handler hub/hash/change
-		 * @inheritdoc browser.hash.widget
-		 * @localdoc Translates {@link browser.hash.widget#event-hub/hash/change} to a `route/change` task
+		 * @inheritdoc dom.hash.widget
+		 * @localdoc Translates {@link dom.hash.widget#event-hub/hash/change} to a `route/change` task
 		 * @fires route/change
 		 */
 		"hub:memory/hash/change": function onHashChange(hash) {
@@ -110,8 +110,8 @@ define([
 		 * Handles route set
 		 * @handler
 		 * @inheritdoc #event-route/set
-		 * @localdoc Translates {@link #event-route/set} to {@link browser.hash.widget#event-hub/hash/set}
-		 * @fires browser.hash.widget#event-hub/hash/set
+		 * @localdoc Translates {@link #event-route/set} to {@link dom.hash.widget#event-hub/hash/set}
+		 * @fires dom.hash.widget#event-hub/hash/set
 		 */
 		"route/set": function onRouteSet(route, data) {
 			return this.publish("hash/set", data["input"]);
