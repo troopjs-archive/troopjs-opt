@@ -96,14 +96,7 @@ define([
 		 * @fires route/change
 		 */
 		"hub:memory/hash/change": function onHashChange(hash) {
-			var me = this;
-			var args = [ "change" ];
-
-			ARRAY_PUSH.apply(args, arguments);
-
-			return me.task(function (resolve) {
-				resolve(runRoute.apply(me, args));
-			}, ROUTE + "/change");
+			this.route(hash);
 		},
 
 		/**
@@ -117,18 +110,25 @@ define([
 			return this.publish("hash/set", data["input"]);
 		},
 
+		"route": function() {
+			var me = this;
+			var args = [ "change" ];
+			ARRAY_PUSH.apply(args, arguments);
+			return me.task(function(resolve) {
+				resolve(runRoute.apply(me, args));
+			}, ROUTE + "/change");
+		},
+
 		/**
 		 * Changes the current route
 		 * @inheritdoc #handler-route/set
 		 * @return {Promise}
 		 * @fires route/set
 		 */
-		"route": function route(route, data) {
+		"nav": function nav(route, data) {
 			var me = this;
 			var args = [ "set" ];
-
 			ARRAY_PUSH.apply(args, arguments);
-
 			return me.task(function (resolve) {
 				resolve(runRoute.apply(me, args));
 			}, ROUTE + "/set");

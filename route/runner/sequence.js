@@ -23,12 +23,17 @@ define([ "poly/array" ], function SequenceModule() {
 	var TYPE = "type";
 	var TOKENS = "tokens";
 
-	var RE_GROUP = /[\(\)]/g;
 	var RE_GROUP_START = /\(/g;
-	var RE_GROUP_END = /\)/g;
-	var RE_TOKEN = /\:(\w+)/g;
-	var RE_TAIL = /\([^\(]?\:.*$/;
-	var RE_ANY = /.*/;
+	var RE_TOKEN = /\:(\w+)\??\/?/g;
+	var RE_TOKEN_ESCAPED = /\@(\w+)(\?)?\/?/g;
+	var MARK_MISSED = '@';
+	var RE_GROUPED_TOKEN = /\(([^)]+)\)\??\/?/g;
+	var RE_ANY = /^.*$/;
+	var RE_DUP_SLASH = /\/{2,}/;
+
+	var RE_BOOLEAN = /^(?:false|true)$/i;
+	var RE_BOOLEAN_TRUE = /^true$/i;
+	var RE_DIGIT = /^\d+$/;
 
 	/**
 	 * @method constructor
@@ -41,7 +46,7 @@ define([ "poly/array" ], function SequenceModule() {
 		var path;
 		var type = event[TYPE];
 		var route = path = args.shift(); // Shift path and route of args
-		var data = args[0]; // Data is provided as the second arg, but we're already shifted
+		var data = args[0] || {}; // Data is provided as the second arg, but we're already shifted
 		var candidate;
 		var candidates = [];
 
@@ -49,14 +54,27 @@ define([ "poly/array" ], function SequenceModule() {
 		if (type === "route/set") {
 			// Populate path with data
 			path = path
-				// Replace tokens
-				.replace(RE_TOKEN, function ($0, $1) {
-					return data[$1] || ":" + $1;
+				// Replace grouped tokens.
+				.replace(RE_GROUPED_TOKEN, function ($0, $1) {
+					var group = $1.replace(RE_TOKEN, function($0, $1) {
+						return data[$1] ? data[$1] + "/" : $0;
+					});
+					// mark the group as missed.
+					return group !== $1 ? group + "/": MARK_MISSED;
 				})
-				// Remove tail where tokens were not replaced
-				.replace(RE_TAIL, "")
-				// Remove remaining grouping
-				.replace(RE_GROUP, "");
+				// Replace the rest of tokens.
+				.replace(RE_TOKEN, function($0, $1) {
+					// mark the parameters as missed.
+					return data[$1] ? data[$1] + "/" : MARK_MISSED;
+				})
+				// Remove any duplicate slashes previously produced.
+				.replace(RE_DUP_SLASH, '/');
+
+			// Dump from before the first missed parameter.
+			var first_missed = path.indexOf(MARK_MISSED);
+			if(first_missed > -1) {
+				path = path.substring(0, first_missed);
+			}
 		}
 		// If this is _not_ a route/change we should throw an error
 		else if (type !== "route/change") {
@@ -98,28 +116,51 @@ define([ "poly/array" ], function SequenceModule() {
 						tokens = candidate[TOKENS] = [];
 
 						// Translate and cache pattern to regexp
-						re = candidate[DATA] = new RegExp(candidate[DATA]
+						re = candidate[DATA]
+							// Preserved colon to be used by regexp.
+							.replace(/\:/g, "@")
 							// Translate grouping to non capturing regexp groups
 							.replace(RE_GROUP_START, "(?:")
-							.replace(RE_GROUP_END, ")?")
 							// Capture tokens
-							.replace(RE_TOKEN, function ($0, token) {
-								// Add token
-								tokens.push(token);
-								// Return replacement
-								return "(\\w+)";
-							}));
+							.replace(RE_TOKEN_ESCAPED, function($0, token, optional) {
+									// Add token
+									tokens.push(token);
+									// Return replacement.
+									$0 = "(?:(\\w+)\/)" + (optional? "?" : "");
+									return $0;
+							})
+							.replace(/([\/.])/g, '\\$1');
+
+						re = candidate[DATA] = new RegExp('^' + re + '$', 'i');
 				}
 
 				// Match path
 				if ((matches = re.exec(path)) !== NULL) {
 					// Capture tokens in data
 					tokens.forEach(function (token, index) {
-						matches[token] = matches[index + 1];
+
+						// Auto type convertion.
+						var val = matches[index + 1];
+						if (RE_BOOLEAN.test(val)) {
+							val = RE_BOOLEAN_TRUE.test(val);
+						}
+						else if (RE_DIGIT.test(val)) {
+							val = +val;
+						}
+
+						matches[index + 1] = matches[token] = val;
 					});
 
+					// Send to route/change all token values.
+					if (type === 'route/change')
+						args = matches.slice(1).concat(args);
+					// Send to route/set the updated path and matches.
+					else {
+						args = [matches].concat(args);
+					}
+
 					// Apply CALLBACK and store in result
-					result = candidate[CALLBACK].apply(candidate[CONTEXT], [ route, matches ].concat(args));
+					result = candidate[CALLBACK].apply(candidate[CONTEXT], args);
 				}
 			}
 
