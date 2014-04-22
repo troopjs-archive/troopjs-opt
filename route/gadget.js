@@ -19,7 +19,7 @@ define([
 	var NAME = "name";
 	var TYPE = "type";
 	var VALUE = "value";
-	var FEATURES = "features";
+	var ARGS = "args";
 	var RUNNER = "runner";
 
 	/**
@@ -85,7 +85,7 @@ define([
 			var me = this;
 
 			return when.map(me.constructor.specials[ROUTE] || ARRAY_PROTO, function (special) {
-				return me.on(special[NAME], special[VALUE], special[FEATURES]);
+				return me.on(special[NAME], special[VALUE], special[ARGS][0]);
 			});
 		},
 
