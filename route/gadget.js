@@ -2,10 +2,11 @@
  * @license MIT http://troopjs.mit-license.org/
  */
 define([
+	"troopjs-compose/mixin/config",
 	"troopjs-core/component/gadget",
 	"./runner/sequence",
 	"when"
-], function (Gadget, sequence, when) {
+], function (COMPOSE_CONF, Gadget, sequence, when) {
 	"use strict";
 
 	/**
@@ -72,6 +73,12 @@ define([
 		// Delegate the actual emitting to emit
 		return me.emit.apply(me, arguments);
 	}
+
+	// Add pragma for ROUTE special
+	COMPOSE_CONF.pragmas.push({
+		"pattern": /^route\/(change|set)(.+)/,
+		"replace": ROUTE + "/$1(\"$2\")"
+	});
 
 	return Gadget.extend({
 		"displayName" : "opt/route/gadget",
