@@ -24,11 +24,13 @@ define([ "poly/array" ], function SequenceModule() {
 	var TOKENS = "tokens";
 
 	var RE_GROUP_START = /\(/g;
-	var RE_TOKEN = /\:(\w+)\??\/?/g;
-	var RE_TOKEN_ESCAPED = /\@(\w+)(\?)?\/?/g;
-	var MARK_MISSED = '@';
+	var RE_TOKEN = /\:(\w+)(\?)?\/?/g;
+	var RE_TOKEN_ESCAPED = /@(\w+)(\?)?\/?/g;
+	var RE_COLON = /\:/g;
+	var MARKER = "@";
 	var RE_GROUPED_TOKEN = /\(([^)]+)\)\??\/?/g;
 	var RE_ANY = /^.*$/;
+	var RE_ESCAPE_REGEXP = /([\/.])/g;
 	var RE_DUP_SLASH = /\/{2,}/;
 
 	var RE_BOOLEAN = /^(?:false|true)$/i;
@@ -49,6 +51,7 @@ define([ "poly/array" ], function SequenceModule() {
 		var data = args[0] || {}; // Data is provided as the second arg, but we're already shifted
 		var candidate;
 		var candidates = [];
+		var first_missed;
 
 		// If this is a route/set we need to pre-process the path
 		if (type === "route/set") {
@@ -59,20 +62,19 @@ define([ "poly/array" ], function SequenceModule() {
 					var group = $1.replace(RE_TOKEN, function($0, $1) {
 						return data[$1] ? data[$1] + "/" : $0;
 					});
-					// mark the group as missed.
-					return group !== $1 ? group + "/": MARK_MISSED;
+					// mark the group as missed unless all params within have fulfilled.
+					return !RE_COLON.test(group) ? group + "/" : MARKER;
 				})
 				// Replace the rest of tokens.
 				.replace(RE_TOKEN, function($0, $1) {
 					// mark the parameters as missed.
-					return data[$1] ? data[$1] + "/" : MARK_MISSED;
+					return data[$1] ? data[$1] + "/" : MARKER;
 				})
 				// Remove any duplicate slashes previously produced.
-				.replace(RE_DUP_SLASH, '/');
+				.replace(RE_DUP_SLASH, "/");
 
 			// Dump from before the first missed parameter.
-			var first_missed = path.indexOf(MARK_MISSED);
-			if(first_missed > -1) {
+			if ((first_missed = path.indexOf(MARKER)) > -1) {
 				path = path.substring(0, first_missed);
 			}
 		}
@@ -116,9 +118,9 @@ define([ "poly/array" ], function SequenceModule() {
 						tokens = candidate[TOKENS] = [];
 
 						// Translate and cache pattern to regexp
-						re = candidate[DATA]
+						re = candidate[DATA] = new RegExp("^" + candidate[DATA]
 							// Preserved colon to be used by regexp.
-							.replace(/\:/g, "@")
+							.replace(RE_COLON, MARKER)
 							// Translate grouping to non capturing regexp groups
 							.replace(RE_GROUP_START, "(?:")
 							// Capture tokens
@@ -126,12 +128,9 @@ define([ "poly/array" ], function SequenceModule() {
 									// Add token
 									tokens.push(token);
 									// Return replacement.
-									$0 = "(?:(\\w+)\/)" + (optional? "?" : "");
-									return $0;
+									return "(?:(\\w+)\/)" + (optional ? "?" : "");
 							})
-							.replace(/([\/.])/g, '\\$1');
-
-						re = candidate[DATA] = new RegExp('^' + re + '$', 'i');
+							.replace(RE_ESCAPE_REGEXP, "\\$1") + "$", "i");
 				}
 
 				// Match path
