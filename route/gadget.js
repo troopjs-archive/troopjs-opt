@@ -90,12 +90,11 @@ define([
 		},
 
 		/**
-		 * @handler hub/hash/change
+		 * @handler hub/route/change
 		 * @inheritdoc dom.hash.widget
-		 * @localdoc Translates {@link dom.hash.widget#event-hub/hash/change} to a `route/change` task
-		 * @fires route/change
+		 * @localdoc Upon URI changed dispatch the route change to individual handlers.
 		 */
-		"hub:memory/hash/change": function onHashChange(hash) {
+		"hub:memory/route/change": function onHashChange(hash) {
 			this.route(hash);
 		},
 
@@ -104,13 +103,18 @@ define([
 		 * @handler
 		 * @inheritdoc #event-route/set
 		 * @localdoc Translates {@link #event-route/set} to {@link dom.hash.widget#event-hub/hash/set}
-		 * @fires dom.hash.widget#event-hub/hash/set
+		 * @fires core.pubsub.hub#event-hub/route/set
 		 */
 		"route/set": function onRouteSet(route, data) {
-			return this.publish("hash/set", data["input"]);
+			return this.publish("route/set", data["input"]);
 		},
 
-		"route": function() {
+		/**
+		 * Emit a {@link #event-route/change} event synchronously, call each handler with the where the pattern matches it.
+		 * @param {String} uri The URI to route with.
+		 * @fires route/change
+		 */
+		"route": function(uri) {
 			var me = this;
 			var args = [ "change" ];
 			ARRAY_PUSH.apply(args, arguments);
@@ -120,12 +124,15 @@ define([
 		},
 
 		/**
-		 * Changes the current route
-		 * @inheritdoc #handler-route/set
+		 * Navigate to a new URI by fulfill the route parameters with the specified list of values, after emitting
+		 * a {@link #event-route/set} event synchronously, call each handler whose route pattern where the pattern matches it.
+		 *
+		 * @param {String} pattern The route pattern to construct the new route.
+		 * @param {Object} params The data object contains the parameter values for routing.
 		 * @return {Promise}
 		 * @fires route/set
 		 */
-		"nav": function nav(route, data) {
+		"nav": function nav(pattern, params) {
 			var me = this;
 			var args = [ "set" ];
 			ARRAY_PUSH.apply(args, arguments);
