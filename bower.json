@@ -6,6 +6,8 @@
     "node_modules"
   ],
   "dependencies": {
+    "troopjs-core": "~3",
+    "troopjs-compose": "~4",
     "poly": "~0",
     "when": "~3"
   }
