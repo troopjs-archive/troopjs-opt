@@ -76,7 +76,7 @@ define([
 
 	// Add pragma for ROUTE special
 	COMPOSE_CONF.pragmas.push({
-		"pattern": /^route\/(change|set)(.+)/,
+		"pattern": /^route\/(change|set)(\/.*)?$/,
 		"replace": ROUTE + "/$1(\"$2\")"
 	});
 
@@ -92,7 +92,7 @@ define([
 			var me = this;
 
 			return when.map(me.constructor.specials[ROUTE] || ARRAY_PROTO, function (special) {
-				return me.on(special[NAME], special[VALUE], special[ARGS][0]);
+				return me.on(special[NAME], special[VALUE], special[ARGS][0] || undefined);
 			});
 		},
 
