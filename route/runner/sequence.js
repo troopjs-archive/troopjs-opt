@@ -63,7 +63,7 @@ define([ "poly/array" ], function SequenceModule() {
 						return data[$1] ? data[$1] + "/" : $0;
 					});
 					// mark the group as missed unless all params within have fulfilled.
-					return !RE_COLON.test(group) ? group + "/" : MARKER;
+					return !group.match(RE_COLON)? group + "/" : MARKER;
 				})
 				// Replace the rest of tokens.
 				.replace(RE_TOKEN, function($0, $1) {
