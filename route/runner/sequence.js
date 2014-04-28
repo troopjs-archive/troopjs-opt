@@ -48,13 +48,16 @@ define([ "poly/array" ], function SequenceModule() {
 		var path;
 		var type = event[TYPE];
 		var route = path = args.shift(); // Shift path and route of args
-		var data = args[0] || {}; // Data is provided as the second arg, but we're already shifted
+		var data;
 		var candidate;
 		var candidates = [];
 		var first_missed;
 
 		// If this is a route/set we need to pre-process the path
 		if (type === "route/set") {
+			// route data is provided as the second arg, but we're already shifted above.
+			data = args.shift() || {};
+
 			// Populate path with data
 			path = path
 				// Replace grouped tokens.
@@ -150,16 +153,9 @@ define([ "poly/array" ], function SequenceModule() {
 						matches[index + 1] = matches[token] = val;
 					});
 
-					// Send to route/change all token values.
-					if (type === 'route/change')
-						args = matches.slice(1).concat(args);
-					// Send to route/set the updated path and matches.
-					else {
-						args = [matches].concat(args);
-					}
-
 					// Apply CALLBACK and store in result
-					result = candidate[CALLBACK].apply(candidate[CONTEXT], args);
+					result = candidate[CALLBACK].apply(candidate[CONTEXT],
+						[matches].concat(type === 'route/change' ? args : [data].concat(args)));
 				}
 			}
 
