@@ -197,6 +197,25 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 			},
 
 			"declaritive": {
+				"route/change/404": function() {
+					var spy = this.spy();
+					var spy404 = this.spy();
+					var router = Gadget.create({
+						"route/change('/foo')": spy,
+						"route/change/foo": spy,
+						"route/change/404": spy404
+					});
+
+					return hub.publish("route/change", "/bar").then(function() {
+						return router.start().then(function() {
+							refute(spy.called);
+							assert(spy404.calledWith("/bar"));
+						});
+					}).ensure(function() {
+						return router.stop();
+					});
+				},
+
 				"route/change": function() {
 					var spy = this.spy();
 

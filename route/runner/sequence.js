@@ -45,12 +45,13 @@ define([ "poly/array" ], function SequenceModule() {
 	 * @throws {Error} If `event.type` is an unknown type
 	 */
 	return function sequence(event, handlers, args) {
-		var path;
 		var type = event[TYPE];
-		var route = path = args.shift(); // Shift path and route of args
+		var path = args.shift(); // Shift path and route of args
 		var data;
+		var matched;
 		var candidate;
 		var candidates = [];
+		var fallbacks = [];
 		var first_missed;
 
 		// If this is a route/set we need to pre-process the path
@@ -88,11 +89,12 @@ define([ "poly/array" ], function SequenceModule() {
 
 		// Copy handlers -> candidates
 		for (candidate = handlers[HEAD]; candidate !== UNDEFINED; candidate = candidate[NEXT]) {
-			candidates.push(candidate);
+			candidate[DATA] === '/404' ? fallbacks.push(candidate) : candidates.push(candidate);
 		}
 
+
 		// Run candidates and return
-		return candidates.reduce(function (result, candidate) {
+		var result = candidates.reduce(function(result, candidate) {
 			var tokens;
 			var matches;
 			var re;
@@ -123,23 +125,23 @@ define([ "poly/array" ], function SequenceModule() {
 						// Translate and cache pattern to regexp
 						re = candidate[DATA] = new RegExp("^" + candidate[DATA]
 							// Preserved colon to be used by regexp.
-							.replace(RE_COLON, MARKER)
+																											.replace(RE_COLON, MARKER)
 							// Translate grouping to non capturing regexp groups
-							.replace(RE_GROUP_START, "(?:")
+																											.replace(RE_GROUP_START, "(?:")
 							// Capture tokens
-							.replace(RE_TOKEN_ESCAPED, function($0, token, optional) {
-									// Add token
-									tokens.push(token);
-									// Return replacement.
-									return "(?:(\\w+)\/)" + (optional ? "?" : "");
+																											.replace(RE_TOKEN_ESCAPED, function($0, token, optional) {
+								// Add token
+								tokens.push(token);
+								// Return replacement.
+								return "(?:(\\w+)\/)" + (optional ? "?" : "");
 							})
-							.replace(RE_ESCAPE_REGEXP, "\\$1") + "$", "i");
+																											.replace(RE_ESCAPE_REGEXP, "\\$1") + "$", "i");
 				}
 
 				// Match path
 				if ((matches = re.exec(path)) !== NULL) {
 					// Capture tokens in data
-					tokens.forEach(function (token, index) {
+					tokens.forEach(function(token, index) {
 
 						// Auto type convertion.
 						var val = matches[index + 1];
@@ -153,6 +155,10 @@ define([ "poly/array" ], function SequenceModule() {
 						matches[index + 1] = matches[token] = val;
 					});
 
+					if (!matched) {
+						matched = 1;
+					}
+
 					// Apply CALLBACK and store in result
 					result = candidate[CALLBACK].apply(candidate[CONTEXT],
 						[matches].concat(type === 'route/change' ? args : [data].concat(args)));
@@ -161,5 +167,14 @@ define([ "poly/array" ], function SequenceModule() {
 
 			return result;
 		}, UNDEFINED);
-	}
+
+		// Run 404s if none of the candidate matches the route.
+		if (!matched && type === 'route/change') {
+			return fallbacks.reduce(function(result, candidate) {
+				result !== false ? candidate[CALLBACK].apply(candidate[CONTEXT], [path].concat(args)) : result;
+			}, result);
+		}
+
+		return result;
+	};
 });
