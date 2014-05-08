@@ -12,25 +12,29 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 				"setUp": function() {
 					var tc = this;
 					tc.router = Gadget.create({
-						"testNav": function() {
+						"testNav": function(pattern, data) {
 							var self = this;
-							self.nav.apply(this, arguments);
-							return this.hash;
+							var spy = tc.spy();
+							var ROUTE_SET = "route/set";
+							self.on(ROUTE_SET, function onRouteSet(matches, changedData, foo) {
+								self.off(ROUTE_SET, onRouteSet);
+								assert.equals(foo, "foo");
+								assert.equals(changedData, data ? data: {});
+								spy(matches["input"]);
+							});
+							return self.go.call(this, pattern, data, "foo").yield(spy);
 						},
 						"testRoute": function(path, uri) {
 							var self = this;
 							var spy = tc.spy();
 							var ROUTE_CHANGE = "route/change";
-							self.on(ROUTE_CHANGE, function() {
-								self.off(ROUTE_CHANGE);
-								// Send all matches down to spy.
-								spy.apply(spy, arguments);
+							self.on(ROUTE_CHANGE, function onRouteChange(matches, foo) {
+								assert.equals(foo, "foo");
+								self.off(ROUTE_CHANGE, onRouteChange);
+								// Spread over all matches down to spy.
+								spy.apply(spy, matches.slice(1));
 							}, path);
-							self.route.call(self, uri);
-							return spy;
-						},
-						"route/set": function(data) {
-							this.hash = data["input"];
+							return hub.publish("route/change", uri, "foo").yield(spy);
 						}
 					});
 
@@ -46,55 +50,94 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 					var CALENDAR = '/calendar/:year?/:month?/:day?';
 					var CALENDAR2 = '/calendar/(:year/:month/:day)?';
 
-					assert.equals(router.testNav(BLOG), '/blog/', 'blog [no]');
-					assert.equals(router.testNav(BLOG, { id: 1 }), '/blog/1/', 'blog [id=1]');
-					assert.equals(router.testNav(BLOG, { id: 1, search: 'abc' }), '/blog/1/abc/', 'blog [id,search]');
-					assert.equals(router.testNav(BLOG, { id: 1, search: 'abc', page: 123 }),
-						'/blog/1/abc/page/123/',
-						'/blog [id,search,page]');
-
-					assert.equals(router.testNav(ADDRESSBOOK_MY), '/addressbook/my/', 'addressbook-my [no]');
-					assert.equals(router.testNav(ADDRESSBOOK_MY, { letter: 1 }),
-						'/addressbook/my/letter/1/',
-						'addressbook-my [letter]');
-
-					assert.equals(router.testNav(ADDRESSBOOK_USER), '/addressbook/user/', 'addressbook-user [no]');
-					assert.equals(router.testNav(ADDRESSBOOK_USER, { letter: 2 }),
-						'/addressbook/user/letter/2/',
-						'addressbook-user [letter]');
-
-					assert.equals(router.testNav(ADDRESSBOOK_LABEL), '/addressbook/label/', 'addressbook-user [no]');
-					assert.equals(router.testNav(ADDRESSBOOK_LABEL, { id: 3 }), '/addressbook/label/3/', 'addressbook-user [id]');
-					assert.equals(router.testNav(ADDRESSBOOK_LABEL, { letter: 4 }),
-						'/addressbook/label/',
-						'addressbook-user [letter]');
-					assert.equals(router.testNav(ADDRESSBOOK_LABEL, { id: 5, letter: 6 }),
-						'/addressbook/label/5/letter/6/',
-						'addressbook-user [id, letter]');
-
-					assert.equals(router.testNav(ADDRESSBOOK_SEARCH), '/addressbook/search/', 'addressbook-search [no]');
-					assert.equals(router.testNav(ADDRESSBOOK_SEARCH, { query: 'abc' }),
-						'/addressbook/search/abc/',
-						'addressbook-search [query]');
-					assert.equals(router.testNav(ADDRESSBOOK_SEARCH, { letter: 'z' }),
-						'/addressbook/search/',
-						'addressbook-search [letter]');
-					assert.equals(router.testNav(ADDRESSBOOK_SEARCH, { query: 'qwerty', letter: 'a' }),
-						'/addressbook/search/qwerty/letter/a/', 'addressbook-search [query, letter]');
-
-					assert.equals(router.testNav(CALENDAR, { year: 2014, day: 22 }), '/calendar/2014/', 'calendar dump [month]');
-					assert.equals(router.testNav(CALENDAR, { month: 4, day: 22 }), '/calendar/', 'calendar dump [month] [day]');
-					assert.equals(router.testNav(CALENDAR, { year: 2014, month: 4, day: 22 }),
-						'/calendar/2014/4/22/',
-						'calendar [year] [month] [day]');
-
-					assert.equals(router.testNav(CALENDAR2, { year: 2014 }), '/calendar/', 'calendar dump [year]');
-					assert.equals(router.testNav(CALENDAR2, { year: 2014, month: 4 }),
-						'/calendar/',
-						'calendar dump [year] [month]');
-					assert.equals(router.testNav(CALENDAR2, { year: 2014, month: 4, day: 22 }),
-						'/calendar/2014/4/22/',
-						'calendar [year] [month] [day]');
+					return router.testNav(BLOG).then(function(spy) {
+						assert(spy.calledWith('/blog/'), 'blog [no]');
+					}).then(function() {
+						return router.testNav(BLOG, { id: 1 }).then(function(spy) {
+							assert(spy.calledWith('/blog/1/'), 'blog [id=1]');
+						});
+					}).then(function() {
+						return router.testNav(BLOG, { id: 1, search: 'abc' }).then(function(spy) {
+							assert(spy.calledWith('/blog/1/abc/'), 'blog [id,search]');
+						});
+					}).then(function() {
+						return router.testNav(BLOG, { id: 1, search: 'abc', page: 123 }).then(function(spy) {
+							assert(spy.calledWith('/blog/1/abc/page/123/'), '/blog [id,search,page]');
+						})
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_MY).then(function(spy) {
+							assert(spy.calledWith('/addressbook/my/'), 'addressbook-my [no]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_MY, { letter: 1 }).then(function(spy) {
+							assert(spy.calledWith('/addressbook/my/letter/1/'), 'addressbook-my [letter]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_USER).then(function(spy) {
+							assert(spy.calledWith('/addressbook/user/'), 'addressbook-user [no]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_USER, { letter: 2 }).then(function(spy) {
+							assert(spy.calledWith('/addressbook/user/letter/2/'), 'addressbook-user [letter]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_LABEL).then(function(spy) {
+							assert(spy.calledWith('/addressbook/label/'), 'addressbook-user [no]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_LABEL, { id: 3 }).then(function(spy) {
+							assert(spy.calledWith('/addressbook/label/3/'), 'addressbook-user [id]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_LABEL, { letter: 4 }).then(function(spy) {
+							assert(spy.calledWith('/addressbook/label/'), 'addressbook-user [letter]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_LABEL, { id: 5, letter: 6 }).then(function(spy) {
+							assert(spy.calledWith('/addressbook/label/5/letter/6/'), 'addressbook-user [id, letter]');
+						})
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_SEARCH).then(function(spy) {
+							assert(spy.calledWith('/addressbook/search/'), 'addressbook-search [no]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_SEARCH, { query: 'abc' }).then(function(spy) {
+							assert(spy.calledWith('/addressbook/search/abc/'), 'addressbook-search [query]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_SEARCH, { letter: 'z' }).then(function(spy) {
+							assert(spy.calledWith('/addressbook/search/'), 'addressbook-search [letter]');
+						});
+					}).then(function() {
+						return router.testNav(ADDRESSBOOK_SEARCH, { query: 'qwerty', letter: 'a' }).then(function(spy) {
+							assert(spy.calledWith('/addressbook/search/qwerty/letter/a/'),
+								'addressbook-search [query, letter]');
+						});
+					}).then(function() {
+						return router.testNav(CALENDAR, { year: 2014, day: 22 }).then(function(spy) {
+							assert(spy.calledWith('/calendar/2014/'), 'calendar dump [month]');
+						});
+					}).then(function() {
+						return router.testNav(CALENDAR, { month: 4, day: 22 }).then(function(spy) {
+							assert(spy.calledWith('/calendar/'), 'calendar dump [month] [day]');
+						});
+					}).then(function() {
+						return router.testNav(CALENDAR, { year: 2014, month: 4, day: 22 }).then(function(spy) {
+							assert(spy.calledWith('/calendar/2014/4/22/'), 'calendar [year] [month] [day]');
+						});
+					}).then(function() {
+						return router.testNav(CALENDAR2, { year: 2014 }).then(function(spy) {
+							assert(spy.calledWith('/calendar/'), 'calendar dump [year]');
+						})
+					}).then(function() {
+						return router.testNav(CALENDAR2, { year: 2014, month: 4 }).then(function(spy) {
+							assert(spy.calledWith('/calendar/'), 'calendar dump [year] [month]');
+						});
+					}).then(function() {
+						return router.testNav(CALENDAR2, { year: 2014, month: 4, day: 22 }).then(function(spy) {
+							assert(spy.calledWith('/calendar/2014/4/22/'), 'calendar [year] [month] [day]');
+						});
+					});
 				},
 				"route/change": function() {
 					var router = this.router;
@@ -107,56 +150,102 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 					var ADDRESSBOOK_LABEL = '/addressbook/label/:id/(letter/:letter)?';
 					var CALENDAR = '/calendar/(:year/:month/:day)?';
 
-					assert(router.testRoute(BLOG, '/blog/').calledWith(undefined, undefined, undefined), 'blog [no argument]');
-					assert(router.testRoute(BLOG, '/blog/1/').calledWith(1, undefined, undefined), 'blog [id=1]');
-					assert(router.testRoute(BLOG, '/blog/1/abc/').calledWith(1, 'abc', undefined), 'blog [id,search]');
-					assert(router.testRoute(BLOG, '/blog/1/abc/page/123/').calledWith(1, 'abc', 123), '/blog [id,search,page]');
-
-					refute(router.testRoute(ADDRESSBOOK_MY, '/addressbook/my/').called, 'addressbook-my [no]');
-					assert(router.testRoute(ADDRESSBOOK_MY, '/addressbook/my/letter/1/').calledWith(1),
-						'addressbook-my [letter]');
-
-					refute(router.testRoute(ADDRESSBOOK_LABEL, '/addressbook/label/').called, 'addressbook-user [no]');
-					refute(router.testRoute(ADDRESSBOOK_LABEL, '/addressbook/letter/6/').called, 'addressbook-user [letter]');
-					assert(router.testRoute(ADDRESSBOOK_LABEL, '/addressbook/label/3/').calledWith(3, undefined),
-						'addressbook-user [id]');
-					assert(router.testRoute(ADDRESSBOOK_LABEL, '/addressbook/label/5/letter/6/').calledWith(5, 6),
-						'addressbook-user [id, letter]');
-
-					refute(router.testRoute(CALENDAR, '/calendar/2014/').called, 'calendar [year]');
-					refute(router.testRoute(CALENDAR, '/calendar/2014/4/').called, 'calendar [year] [month]');
-					assert(router.testRoute(CALENDAR, '/calendar/2014/4/22/').calledWith(2014, 4, 22),
-						'calendar [year] [month] [day]');
+					return router.testRoute(BLOG, '/blog/').then(function(spy) {
+						assert(spy.calledWith(undefined, undefined, undefined), 'blog [no argument]' );
+					}).then(function() {
+						return router.testRoute(BLOG, '/blog/1/').then(function(spy) {
+							assert(spy.calledWith(1, undefined, undefined), 'blog [id=1]');
+						});
+					}).then(function() {
+						return router.testRoute(ADDRESSBOOK_MY, '/addressbook/my/').then(function(spy) {
+							refute(spy.called, 'addressbook-my [no]');
+						});
+					}).then(function() {
+						return router.testRoute(ADDRESSBOOK_MY, '/addressbook/my/letter/1/').then(function(spy) {
+							assert(spy.calledWith(1), 'addressbook-my [letter]');
+						});
+					}).then(function() {
+						return router.testRoute(ADDRESSBOOK_LABEL, '/addressbook/label/').then(function(spy) {
+							refute(spy.called, 'addressbook-user [no]');
+						})
+					}).then(function() {
+						return router.testRoute(ADDRESSBOOK_LABEL, '/addressbook/letter/6/').then(function(spy) {
+							refute(spy.called, 'addressbook-user [letter]');
+						})
+					}).then(function() {
+						return router.testRoute(ADDRESSBOOK_LABEL, '/addressbook/label/3/').then(function(spy) {
+							assert(spy.calledWith(3, undefined), 'addressbook-user [id]');
+						});
+					}).then(function() {
+						return router.testRoute(ADDRESSBOOK_LABEL, '/addressbook/label/5/letter/6/').then(function(spy) {
+							assert(spy.calledWith(5, 6), 'addressbook-user [id, letter]');
+						})
+					}).then(function() {
+						return router.testRoute(CALENDAR, '/calendar/2014/').then(function(spy) {
+							refute(spy.called, 'calendar [year]');
+						})
+					}).then(function() {
+						return router.testRoute(CALENDAR, '/calendar/2014/4/').then(function(spy) {
+							refute(spy.called, 'calendar [year] [month]');
+						})
+					}).then(function() {
+						return router.testRoute(CALENDAR, '/calendar/2014/4/22/').then(function(spy) {
+							assert(spy.calledWith(2014, 4, 22), 'calendar [year] [month] [day]');
+						})
+					});
 				}
 			},
 
 			"declaritive": {
-				"route/change": function() {
+				"route/change/404": function() {
 					var spy = this.spy();
-					function countRoutes() { spy(); }
+					var spy404 = this.spy();
 					var router = Gadget.create({
-						"route/change": countRoutes,
-						"route/change('/addressbook/my/(letter/:letter)?')": countRoutes,
-						"route/change/addressbook/my/(letter/:letter)": countRoutes
+						"route/change('/foo')": spy,
+						"route/change/foo": spy,
+						"route/change/404": spy404
 					});
-					router.start().then(function() {
-						return hub.publish("route/change", "/addressbook/my/letter/6/").then(function() {
-							assert.equals(3, spy.callCount, 'declarative route/change');
+
+					return hub.publish("route/change", "/bar").then(function() {
+						return router.start().then(function() {
+							refute(spy.called);
+							assert(spy404.calledWith("/bar"));
 						});
 					}).ensure(function() {
 						return router.stop();
 					});
 				},
+
+				"route/change": function() {
+					var spy = this.spy();
+
+					var router = Gadget.create({
+						"route/change": spy,
+						"route/change('/addressbook/my/(letter/:letter)?')": spy,
+						"route/change/addressbook/my/(letter/:letter)": spy
+					});
+
+					return hub.publish("route/change", "/addressbook/my/letter/6/").then(function() {
+						return router.start().then(function() {
+							assert.equals(3, spy.callCount, 'declarative route/change');
+						});
+					}).ensure(function() { return router.stop(); });
+				},
 				"route/set": function() {
 					var spy = this.spy();
-					function countRoutes() { spy(); }
+
+					function countRoutes() {
+						spy();
+					}
+
 					var router = Gadget.create({
 						"route/set": countRoutes,
 						"route/set('/addressbook/my/(letter/:letter)?')": countRoutes,
 						"route/set/addressbook/my/(letter/:letter)": countRoutes
 					});
+
 					return router.start().then(function() {
-						return router.nav("/addressbook/my/(letter/:letter)", { letter: 1 }).then(function() {
+						return router.go("/addressbook/my/(letter/:letter)", { letter: 1 }).then(function() {
 							assert.equals(3, spy.callCount, 'declarative route/set');
 						});
 					});
