@@ -2,10 +2,11 @@
  * @license MIT http://troopjs.mit-license.org/
  */
 define([
+	"troopjs-compose/mixin/config",
 	"troopjs-core/component/gadget",
 	"./runner/sequence",
 	"when"
-], function (Gadget, sequence, when) {
+], function (COMPOSE_CONF, Gadget, sequence, when) {
 	"use strict";
 
 	/**
@@ -19,7 +20,7 @@ define([
 	var NAME = "name";
 	var TYPE = "type";
 	var VALUE = "value";
-	var FEATURES = "features";
+	var ARGS = "args";
 	var RUNNER = "runner";
 
 	/**
@@ -73,6 +74,12 @@ define([
 		return me.emit.apply(me, arguments);
 	}
 
+	// Add pragma for ROUTE special
+	COMPOSE_CONF.pragmas.push({
+		"pattern": /^route\/(change|set)(\/.*)?$/,
+		"replace": ROUTE + "/$1(\"$2\")"
+	});
+
 	return Gadget.extend({
 		"displayName" : "opt/route/gadget",
 
@@ -85,23 +92,22 @@ define([
 			var me = this;
 
 			return when.map(me.constructor.specials[ROUTE] || ARRAY_PROTO, function (special) {
-				return me.on(special[NAME], special[VALUE], special[FEATURES]);
+				return me.on(special[NAME], special[VALUE], special[ARGS][0] || undefined);
 			});
 		},
 
 		/**
-		 * @handler hub/hash/change
-		 * @inheritdoc browser.hash.widget
-		 * @localdoc Translates {@link browser.hash.widget#event-hub/hash/change} to a `route/change` task
-		 * @fires route/change
+		 * @handler hub/route/change
+		 * @param {String} uri The new URI.
+		 * @inheritdoc dom.hash.widget
+		 * @localdoc Handles URI change to dispatch it to individual handlers by emitting a {@link #event-route/change} event
+		 * synchronously, call each handler when the pattern matches the new URI.
 		 */
-		"hub:memory/hash/change": function onHashChange(hash) {
+		"hub:memory/route/change": function onHashChange(uri) {
 			var me = this;
 			var args = [ "change" ];
-
 			ARRAY_PUSH.apply(args, arguments);
-
-			return me.task(function (resolve) {
+			return me.task(function(resolve) {
 				resolve(runRoute.apply(me, args));
 			}, ROUTE + "/change");
 		},
@@ -110,25 +116,26 @@ define([
 		 * Handles route set
 		 * @handler
 		 * @inheritdoc #event-route/set
-		 * @localdoc Translates {@link #event-route/set} to {@link browser.hash.widget#event-hub/hash/set}
-		 * @fires browser.hash.widget#event-hub/hash/set
+		 * @localdoc Translates {@link #event-route/set} to {@link dom.hash.widget#event-hub/hash/set}
+		 * @fires core.pubsub.hub#event-hub/route/set
 		 */
 		"route/set": function onRouteSet(route, data) {
-			return this.publish("hash/set", data["input"]);
+			return this.publish("route/set", data["input"]);
 		},
 
 		/**
-		 * Changes the current route
-		 * @inheritdoc #handler-route/set
+		 * Navigate to a new URI by fulfill the route parameters with the specified list of values, after emitting
+		 * a {@link #event-route/set} event synchronously, call each handler whose route pattern where the pattern matches it.
+		 *
+		 * @param {String} pattern The route pattern to construct the new route.
+		 * @param {Object} params The data object contains the parameter values for routing.
 		 * @return {Promise}
 		 * @fires route/set
 		 */
-		"route": function route(route, data) {
+		"go": function go(pattern, params) {
 			var me = this;
 			var args = [ "set" ];
-
 			ARRAY_PUSH.apply(args, arguments);
-
 			return me.task(function (resolve) {
 				resolve(runRoute.apply(me, args));
 			}, ROUTE + "/set");

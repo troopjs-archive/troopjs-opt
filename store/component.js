@@ -4,9 +4,8 @@
 define([
 	"troopjs-core/mixin/base",
 	"when",
-	"when/apply",
 	"poly/array"
-], function StoreModule(Base, when, apply) {
+], function StoreModule(Base, when) {
 	"use strict";
 
 	/**
@@ -263,7 +262,7 @@ define([
 						});
 				})
 				// Add callbacks
-				.then(onFulfilled && apply(onFulfilled), onRejected, onProgress);
+				.then(onFulfilled && when.apply(onFulfilled), onRejected, onProgress);
 		},
 
 		/**
@@ -331,7 +330,7 @@ define([
 					return when(applyMethod.call(adapter, CLEAR, me));
 				})
 				// Add callbacks
-				.then(onFulfilled && apply(onFulfilled), onRejected, onProgress);
+				.then(onFulfilled && when.apply(onFulfilled), onRejected, onProgress);
 		}
 	});
 });
