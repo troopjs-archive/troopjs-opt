@@ -110,6 +110,8 @@ define([ "poly/array" ], function SequenceModule() {
 						break;
 
 					case "[object Undefined]":
+					// phantom reported weird [object DOMWindow] for undefined property.
+					case "[object DOMWindow]":
 						// Match anything
 						re = RE_ANY;
 
