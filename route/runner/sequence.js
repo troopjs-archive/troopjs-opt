@@ -89,9 +89,8 @@ define([ "poly/array" ], function SequenceModule() {
 
 		// Copy handlers -> candidates
 		for (candidate = handlers[HEAD]; candidate !== UNDEFINED; candidate = candidate[NEXT]) {
-			candidate[DATA] === '/404' ? fallbacks.push(candidate) : candidates.push(candidate);
+			candidate[DATA] === "/404" ? fallbacks.push(candidate) : candidates.push(candidate);
 		}
-
 
 		// Run candidates and return
 		var result = candidates.reduce(function(result, candidate) {
@@ -125,17 +124,17 @@ define([ "poly/array" ], function SequenceModule() {
 						// Translate and cache pattern to regexp
 						re = candidate[DATA] = new RegExp("^" + candidate[DATA]
 							// Preserved colon to be used by regexp.
-																											.replace(RE_COLON, MARKER)
+							.replace(RE_COLON, MARKER)
 							// Translate grouping to non capturing regexp groups
-																											.replace(RE_GROUP_START, "(?:")
+							.replace(RE_GROUP_START, "(?:")
 							// Capture tokens
-																											.replace(RE_TOKEN_ESCAPED, function($0, token, optional) {
+							.replace(RE_TOKEN_ESCAPED, function($0, token, optional) {
 								// Add token
 								tokens.push(token);
 								// Return replacement.
 								return "(?:(\\w+)\/)" + (optional ? "?" : "");
 							})
-																											.replace(RE_ESCAPE_REGEXP, "\\$1") + "$", "i");
+							.replace(RE_ESCAPE_REGEXP, "\\$1") + "$", "i");
 				}
 
 				// Match path
@@ -161,7 +160,7 @@ define([ "poly/array" ], function SequenceModule() {
 
 					// Apply CALLBACK and store in result
 					result = candidate[CALLBACK].apply(candidate[CONTEXT],
-						[matches].concat(type === 'route/change' ? args : [data].concat(args)));
+						[matches].concat(type === "route/change" ? args : [data].concat(args)));
 				}
 			}
 
@@ -169,7 +168,7 @@ define([ "poly/array" ], function SequenceModule() {
 		}, UNDEFINED);
 
 		// Run 404s if none of the candidate matches the route.
-		if (!matched && type === 'route/change') {
+		if (!matched && type === "route/change") {
 			return fallbacks.reduce(function(result, candidate) {
 				result !== false ? candidate[CALLBACK].apply(candidate[CONTEXT], [path].concat(args)) : result;
 			}, result);
