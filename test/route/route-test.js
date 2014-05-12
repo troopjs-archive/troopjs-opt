@@ -99,8 +99,8 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 							assert(spy.calledWith("/addressbook/label/"), "addressbook-user [no]");
 						});
 					}).then(function() {
-						return router.testNav(ADDRESSBOOK_LABEL, { id: 3 }).then(function(spy) {
-							assert(spy.calledWith("/addressbook/label/3/"), "addressbook-user [id]");
+						return router.testNav(ADDRESSBOOK_LABEL, { id: 0 }).then(function(spy) {
+							assert(spy.calledWith("/addressbook/label/0/"), "addressbook-user [id]");
 						});
 					}).then(function() {
 						return router.testNav(ADDRESSBOOK_LABEL, { letter: 4 }).then(function(spy) {

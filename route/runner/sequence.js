@@ -64,7 +64,7 @@ define([ "poly/array" ], function SequenceModule() {
 				// Replace grouped tokens.
 				.replace(RE_GROUPED_TOKEN, function ($0, $1) {
 					var group = $1.replace(RE_TOKEN, function($0, $1) {
-						return data[$1] ? data[$1] + "/" : $0;
+						return $1 in data ? data[$1] + "/" : $0;
 					});
 					// mark the group as missed unless all params within have fulfilled.
 					return !group.match(RE_COLON)? group + "/" : MARKER;
@@ -72,7 +72,7 @@ define([ "poly/array" ], function SequenceModule() {
 				// Replace the rest of tokens.
 				.replace(RE_TOKEN, function($0, $1) {
 					// mark the parameters as missed.
-					return data[$1] ? data[$1] + "/" : MARKER;
+					return $1 in data ? data[$1] + "/" : MARKER;
 				})
 				// Remove any duplicate slashes previously produced.
 				.replace(RE_DUP_SLASH, "/");
