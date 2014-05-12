@@ -53,6 +53,12 @@ define([
 	 */
 
 	/**
+	 * To change the current route
+	 * @event hub/route/set
+	 * @param {String} The new uri
+	 */
+
+	/**
 	 * Runs routes
 	 * @ignore
 	 * @param {String} op Operation
@@ -99,8 +105,7 @@ define([
 		/**
 		 * @handler hub/route/change
 		 * @param {String} uri The new URI.
-		 * @inheritdoc dom.hash.widget
-		 * @localdoc Handles URI change to dispatch it to individual handlers by emitting a {@link #event-route/change} event
+		 * Handles URI change to dispatch it to individual handlers by emitting a {@link #event-route/change} event
 		 * synchronously, call each handler when the pattern matches the new URI.
 		 */
 		"hub:memory/route/change": function onHashChange(uri) {
@@ -117,7 +122,7 @@ define([
 		 * @handler
 		 * @inheritdoc #event-route/set
 		 * @localdoc Translates {@link #event-route/set} to {@link dom.hash.widget#event-hub/hash/set}
-		 * @fires core.pubsub.hub#event-hub/route/set
+		 * @fires hub/route/set
 		 */
 		"route/set": function onRouteSet(route, data) {
 			return this.publish("route/set", data["input"]);
