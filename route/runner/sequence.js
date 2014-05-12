@@ -161,8 +161,7 @@ define([ "poly/array" ], function SequenceModule() {
 					}
 
 					// Apply CALLBACK and store in result
-					result = candidate[CALLBACK].apply(candidate[CONTEXT],
-						[matches].concat(type === "route/change" ? args : [data].concat(args)));
+					result = candidate[CALLBACK].apply(candidate[CONTEXT], [ path, matches ].concat(args));
 				}
 			}
 
@@ -172,7 +171,7 @@ define([ "poly/array" ], function SequenceModule() {
 		// Run 404s if none of the candidate matches the route.
 		if (!matched && type === "route/change") {
 			return fallbacks.reduce(function(result, candidate) {
-				result !== false ? candidate[CALLBACK].apply(candidate[CONTEXT], [path].concat(args)) : result;
+				result !== false ? candidate[CALLBACK].apply(candidate[CONTEXT], [ path ].concat(args)) : result;
 			}, result);
 		}
 
