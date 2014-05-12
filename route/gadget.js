@@ -124,8 +124,8 @@ define([
 		 * @localdoc Translates {@link #event-route/set} to {@link dom.hash.widget#event-hub/hash/set}
 		 * @fires hub/route/set
 		 */
-		"route/set": function onRouteSet(route, data) {
-			return this.publish("route/set", data["input"]);
+		"route/set": function onRouteSet(route) {
+			return this.publish("route/set", route["input"]);
 		},
 
 		/**

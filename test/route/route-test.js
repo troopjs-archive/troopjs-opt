@@ -15,25 +15,39 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 						"testNav": function(pattern, data) {
 							var self = this;
 							var spy = tc.spy();
+
 							var ROUTE_SET = "route/set";
-							self.on(ROUTE_SET, function onRouteSet(matches, changedData, foo) {
+							function onUriSet(uri) { spy(uri); }
+							function onRouteSet(matches, changedData, foo) {
 								self.off(ROUTE_SET, onRouteSet);
 								assert.equals(foo, "foo");
-								assert.equals(changedData, data ? data: {});
-								spy(matches["input"]);
+								assert.equals(changedData, data ? data : {});
+							}
+
+							// assert of "hub/route/set" topic.
+							hub.subscribe(ROUTE_SET, self, onUriSet);
+							// assert of "route/set" event.
+							self.on(ROUTE_SET, onRouteSet);
+
+							return self.go.call(this, pattern, data, "foo").yield(spy).tap(function() {
+								// Clean up.
+								hub.unsubscribe(ROUTE_SET, self, onUriSet);
+								self.unsubscribe(ROUTE_SET, onRouteSet);
 							});
-							return self.go.call(this, pattern, data, "foo").yield(spy);
 						},
 						"testRoute": function(path, uri) {
 							var self = this;
 							var spy = tc.spy();
+
 							var ROUTE_CHANGE = "route/change";
-							self.on(ROUTE_CHANGE, function onRouteChange(matches, foo) {
+							function onRouteChange(matches, foo) {
 								assert.equals(foo, "foo");
 								self.off(ROUTE_CHANGE, onRouteChange);
 								// Spread over all matches down to spy.
 								spy.apply(spy, matches.slice(1));
-							}, path);
+							}
+							self.on(ROUTE_CHANGE, onRouteChange, path);
+
 							return hub.publish("route/change", uri, "foo").yield(spy);
 						}
 					});
