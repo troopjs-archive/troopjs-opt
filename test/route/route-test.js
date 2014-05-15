@@ -13,42 +13,51 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 					var tc = this;
 					tc.router = Gadget.create({
 						"testNav": function(pattern, data) {
+
 							var self = this;
 							var spy = tc.spy();
-
 							var ROUTE_SET = "route/set";
-							function onUriSet(uri) { spy(uri); }
-							function onRouteSet(matches, changedData, foo) {
-								self.off(ROUTE_SET, onRouteSet);
+
+							// check for route handler arguments
+							function assertArgs(uri, match, foo) {
+								spy(uri);
+								assert.isArray(match);
+								assert(match[0] === match.input );
+								assert(match[0] === uri );
 								assert.equals(foo, "foo");
-								assert.equals(changedData, data ? data : {});
 							}
 
-							// assert of "hub/route/set" topic.
-							hub.subscribe(ROUTE_SET, self, onUriSet);
-							// assert of "route/set" event.
-							self.on(ROUTE_SET, onRouteSet);
+							// listen on hub and route
+							hub.subscribe(ROUTE_SET, self, assertArgs);
+							self.on(ROUTE_SET, assertArgs, pattern);
 
 							return self.go.call(this, pattern, data, "foo").yield(spy).tap(function() {
 								// Clean up.
-								hub.unsubscribe(ROUTE_SET, self, onUriSet);
-								self.unsubscribe(ROUTE_SET, onRouteSet);
+								hub.unsubscribe(ROUTE_SET, self, assertArgs);
+								self.unsubscribe(ROUTE_SET, assertArgs);
 							});
 						},
 						"testRoute": function(path, uri) {
+
 							var self = this;
 							var spy = tc.spy();
-
 							var ROUTE_CHANGE = "route/change";
-							function onRouteChange(matches, foo) {
-								assert.equals(foo, "foo");
-								self.off(ROUTE_CHANGE, onRouteChange);
-								// Spread over all matches down to spy.
-								spy.apply(spy, matches.slice(1));
-							}
-							self.on(ROUTE_CHANGE, onRouteChange, path);
 
-							return hub.publish("route/change", uri, "foo").yield(spy);
+							// check for arguments
+							function assertArgs(uri, match, foo) {
+								assert.isArray(match);
+								// Spread over all matches down to spy.
+								spy.apply(spy, match.slice(1));
+								assert(match[0] === match.input);
+								assert(match[0] === uri);
+								assert.equals(foo, "foo");
+							}
+
+							self.on(ROUTE_CHANGE, assertArgs, path);
+
+							return hub.publish("route/change", uri, "foo").tap(function() {
+								self.off(ROUTE_CHANGE, assertArgs);
+							}).yield(spy);
 						}
 					});
 
