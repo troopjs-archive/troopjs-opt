@@ -205,76 +205,46 @@ define([
 		/**
 		 * Waits for store to be "locked"
 		 * @param {String} key Key
-		 * @param {Function} [onFulfilled] onFulfilled callback
-		 * @param {Function} [onRejected] onRejected callback
-		 * @param {Function} [onProgress] onProgress callback
 		 * @return {Promise} Promise of ready
 		 */
-		"lock" : function (key, onFulfilled, onRejected, onProgress) {
+		"lock" : function (key) {
 			var locks = this[LOCKS];
-			var result;
 
 			if (OBJECT_TOSTRING.call(key) !== TOSTRING_STRING) {
 				throw new Error("key has to be of type string");
 			}
 
-			result = locks[key] = when(locks[key], onFulfilled, onRejected, onProgress);
-
-			return result;
+			return (locks[key] = when(locks[key]));
 		},
 
 		/**
 		 * Gets state value
 		 * @param {...String} key Key - can be dot separated for sub keys
-		 * @param {Function} [onFulfilled] onFulfilled callback
-		 * @param {Function} [onRejected] onRejected callback
-		 * @param {Function} [onProgress] onProgress callback
 		 * @return {Promise} Promise of value
 		 */
-		"get" : function (key, onFulfilled, onRejected, onProgress) {
+		"get" : function (key) {
 			/*jshint curly:false*/
 			var me = this;
-			var keys = ARRAY_SLICE.call(arguments);
-			var i;
-			var iMax;
-
-			// Step until we hit the end or keys[i] is not a string
-			for (i = 0, iMax = keys[LENGTH]; i < iMax && OBJECT_TOSTRING.call(keys[i]) === TOSTRING_STRING; i++);
-
-			// Update callbacks
-			onFulfilled = keys[i];
-			onRejected = keys[i+1];
-			onProgress = keys[i+2];
-
-			// Set the new length of keys
-			keys[LENGTH] = i;
-
-			return when
-				.map(keys, function (key) {
+			return when.map(ARRAY_SLICE.call(arguments), function (key) {
 					return when
 						// Map adapters and BEFORE_GET on each adapter
 						.map(me[ADAPTERS], function (adapter) {
 							return when(applyMethod.call(adapter, BEFORE_GET, me, key));
 						})
 						// Get value from STORAGE
-						.then(function () {
+						.then(function() {
 							return get.call(me, key);
 						});
-				})
-				// Add callbacks
-				.then(onFulfilled && when.apply(onFulfilled), onRejected, onProgress);
+				});
 		},
 
 		/**
 		 * Puts state value
 		 * @param {String} key Key - can be dot separated for sub keys
 		 * @param {*} value Value
-		 * @param {Function} [onFulfilled] onFulfilled callback
-		 * @param {Function} [onRejected] onRejected callback
-		 * @param {Function} [onProgress] onProgress callback
 		 * @return {Promise} Promise of value
 		 */
-		"put" : function (key, value, onFulfilled, onRejected, onProgress) {
+		"put" : function (key, value) {
 			var me = this;
 
 			return when(put.call(me, key, value), function (result) {
@@ -285,25 +255,20 @@ define([
 					})
 					.yield(result);
 			})
-				// Add callbacks
-				.then(onFulfilled, onRejected, onProgress);
 		},
 
 		/**
 		 * Puts state value if key is UNDEFINED
 		 * @param {String} key Key - can be dot separated for sub keys
 		 * @param {*} value Value
-		 * @param {Function} [onFulfilled] onFulfilled callback
-		 * @param {Function} [onRejected] onRejected callback
-		 * @param {Function} [onProgress] onProgress callback
 		 * @return {Promise} Promise of value
 		 */
-		"putIfNotHas" : function (key, value, onFulfilled, onRejected, onProgress) {
+		"putIfNotHas" : function (key, value) {
 			var me = this;
 
 			return !me.has(key)
-				? me.put(key, value, onFulfilled, onRejected, onProgress)
-				: when(UNDEFINED, onFulfilled, onRejected, onProgress);
+				? me.put(key, value)
+				: when(UNDEFINED);
 		},
 
 		/**
@@ -317,20 +282,14 @@ define([
 
 		/**
 		 * Clears all adapters
-		 * @param {Function} [onFulfilled] onFulfilled callback
-		 * @param {Function} [onRejected] onRejected callback
-		 * @param {Function} [onProgress] onProgress callback
 		 * @return {Promise} Promise of clear
 		 */
-		"clear" : function (onFulfilled, onRejected, onProgress) {
+		"clear" : function () {
 			var me = this;
-
 			return when
 				.map(me[ADAPTERS], function (adapter) {
 					return when(applyMethod.call(adapter, CLEAR, me));
-				})
-				// Add callbacks
-				.then(onFulfilled && when.apply(onFulfilled), onRejected, onProgress);
+				});
 		}
 	});
 });
