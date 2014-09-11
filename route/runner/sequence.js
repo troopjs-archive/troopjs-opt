@@ -110,17 +110,8 @@ define([ "poly/array" ], function SequenceModule() {
 						tokens = candidate[TOKENS];
 						break;
 
-					case "[object Undefined]":
-					// phantom reported weird [object DOMWindow] for undefined property.
-					case "[object DOMWindow]":
-						// Match anything
-						re = RE_ANY;
-
-						// Empty tokens
-						tokens = [];
-						break;
-
-					default:
+					// compile pattern string into regexp
+					case "[object String]":
 						// Reset tokens
 						tokens = candidate[TOKENS] = [];
 
@@ -138,6 +129,16 @@ define([ "poly/array" ], function SequenceModule() {
 								return "(?:([^\/]+)\/)" + (optional ? "?" : "");
 							})
 							.replace(RE_ESCAPE_REGEXP, "\\$1") + "$", "i");
+
+						break;
+
+					// route is not specified
+					default:
+						// Match anything
+						re = RE_ANY;
+						// Empty tokens
+						tokens = [];
+						break;
 				}
 
 				// normalize the path to always start/end with slash.
