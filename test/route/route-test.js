@@ -13,28 +13,51 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 					var tc = this;
 					tc.router = Gadget.create({
 						"testNav": function(pattern, data) {
+
 							var self = this;
 							var spy = tc.spy();
 							var ROUTE_SET = "route/set";
-							self.on(ROUTE_SET, function onRouteSet(matches, changedData, foo) {
-								self.off(ROUTE_SET, onRouteSet);
+
+							// check for route handler arguments
+							function assertArgs(uri, match, foo) {
+								spy(uri);
+								assert.isArray(match);
+								assert(match[0] === match.input );
+								assert(match[0] === uri );
 								assert.equals(foo, "foo");
-								assert.equals(changedData, data ? data: {});
-								spy(matches["input"]);
+							}
+
+							// listen on hub and route
+							hub.subscribe(ROUTE_SET, self, assertArgs);
+							self.on(ROUTE_SET, assertArgs, pattern);
+
+							return self.go.call(this, pattern, data, "foo").yield(spy).tap(function() {
+								// Clean up.
+								hub.unsubscribe(ROUTE_SET, self, assertArgs);
+								self.unsubscribe(ROUTE_SET, assertArgs);
 							});
-							return self.go.call(this, pattern, data, "foo").yield(spy);
 						},
 						"testRoute": function(path, uri) {
+
 							var self = this;
 							var spy = tc.spy();
 							var ROUTE_CHANGE = "route/change";
-							self.on(ROUTE_CHANGE, function onRouteChange(matches, foo) {
-								assert.equals(foo, "foo");
-								self.off(ROUTE_CHANGE, onRouteChange);
+
+							// check for arguments
+							function assertArgs(uri, match, foo) {
+								assert.isArray(match);
 								// Spread over all matches down to spy.
-								spy.apply(spy, matches.slice(1));
-							}, path);
-							return hub.publish("route/change", uri, "foo").yield(spy);
+								spy.apply(spy, match.slice(1));
+								assert(match[0] === match.input);
+								assert(match[0] === uri);
+								assert.equals(foo, "foo");
+							}
+
+							self.on(ROUTE_CHANGE, assertArgs, path);
+
+							return hub.publish("route/change", uri, "foo").tap(function() {
+								self.off(ROUTE_CHANGE, assertArgs);
+							}).yield(spy);
 						}
 					});
 
@@ -85,8 +108,8 @@ buster.testCase("troopjs-opt/route/gadget", function (run) {
 							assert(spy.calledWith("/addressbook/label/"), "addressbook-user [no]");
 						});
 					}).then(function() {
-						return router.testNav(ADDRESSBOOK_LABEL, { id: 3 }).then(function(spy) {
-							assert(spy.calledWith("/addressbook/label/3/"), "addressbook-user [id]");
+						return router.testNav(ADDRESSBOOK_LABEL, { id: 0 }).then(function(spy) {
+							assert(spy.calledWith("/addressbook/label/0/"), "addressbook-user [id]");
 						});
 					}).then(function() {
 						return router.testNav(ADDRESSBOOK_LABEL, { letter: 4 }).then(function(spy) {

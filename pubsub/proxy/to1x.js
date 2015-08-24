@@ -168,7 +168,7 @@ define([
 						ARRAY_PUSH.apply(args, ARRAY_SLICE.call(arguments, 1));
 
 						// If the last argument look like a promise we pop and store as deferred
-						if (when.isPromise(args[args[LENGTH] - 1])) {
+						if (when.isPromiseLike(args[args[LENGTH] - 1])) {
 							deferred = args.pop();
 						}
 

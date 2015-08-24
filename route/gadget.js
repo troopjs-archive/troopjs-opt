@@ -125,7 +125,10 @@ define([
 		 * @fires hub/route/set
 		 */
 		"route/set": function onRouteSet(route, data) {
-			return this.publish("route/set", data["input"]);
+			var me = this;
+			var args = [ "route/set" ];
+			ARRAY_PUSH.apply(args, arguments);
+			return this.publish.apply(me, args);
 		},
 
 		/**
@@ -134,10 +137,13 @@ define([
 		 *
 		 * @param {String} pattern The route pattern to construct the new route.
 		 * @param {Object} params The data object contains the parameter values for routing.
+		 * @param {Object} options The options object specifying policies of URL update
+		 * @param {Object} options.silent This URL change shall not trigger any subsequent change event
+		 * @param {Object} options.replace This URL change shall replace instead of append the current page state in session History,
 		 * @return {Promise}
 		 * @fires route/set
 		 */
-		"go": function go(pattern, params) {
+		"go": function go(pattern, params, options) {
 			var me = this;
 			var args = [ "set" ];
 			ARRAY_PUSH.apply(args, arguments);
