@@ -47,7 +47,8 @@ define([ "poly/array" ], function SequenceModule() {
 	return function sequence(event, handlers, args) {
 		var type = event[TYPE];
 		var path = args.shift(); // Shift path and route of args
-		var data;
+        var normalized;
+        var data;
 		var matched;
 		var candidate;
 		var candidates = [];
@@ -109,17 +110,8 @@ define([ "poly/array" ], function SequenceModule() {
 						tokens = candidate[TOKENS];
 						break;
 
-					case "[object Undefined]":
-					// phantom reported weird [object DOMWindow] for undefined property.
-					case "[object DOMWindow]":
-						// Match anything
-						re = RE_ANY;
-
-						// Empty tokens
-						tokens = [];
-						break;
-
-					default:
+					// compile pattern string into regexp
+					case "[object String]":
 						// Reset tokens
 						tokens = candidate[TOKENS] = [];
 
@@ -134,13 +126,31 @@ define([ "poly/array" ], function SequenceModule() {
 								// Add token
 								tokens.push(token);
 								// Return replacement.
-								return "(?:(\\w+)\/)" + (optional ? "?" : "");
+								return "(?:([^\/]+)\/)" + (optional ? "?" : "");
 							})
 							.replace(RE_ESCAPE_REGEXP, "\\$1") + "$", "i");
+
+						break;
+
+					// route is not specified
+					default:
+						// Match anything
+						re = RE_ANY;
+						// Empty tokens
+						tokens = [];
+						break;
 				}
 
-				// Match path
-				if ((matches = re.exec(path)) !== NULL) {
+				// normalize the path to always start/end with slash.
+				normalized = path;
+				if (normalized[0] !== "/") {
+					normalized = "/" + normalized;
+				}
+				if (normalized[normalized.length - 1] !== "/") {
+					normalized += "/";
+				}
+
+				if ((matches = re.exec(normalized)) !== NULL) {
 					// Capture tokens in data
 					tokens.forEach(function(token, index) {
 
